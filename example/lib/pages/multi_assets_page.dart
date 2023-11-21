@@ -22,7 +22,7 @@ class _MultiAssetsPageState extends State<MultiAssetsPage>
   String get noticeText => 'lib/pages/multi_assets_page.dart';
 
   @override
-  int get maxAssetsCount => 9;
+  int get maxAssetsCount => 100;
 
   /// Check each method's source code for more details.
   @override
