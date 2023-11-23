@@ -1122,108 +1122,82 @@ class DefaultAssetPickerBuilderDelegate
                       Provider.of<DefaultAssetPickerProvider>(context);
 
                   final double screenWidth = MediaQuery.of(context).size.width;
+                  final double screenHeight =
+                      MediaQuery.of(context).size.height;
 
                   final double itemSize = screenWidth / gridCount - itemSpacing;
+                  final double itemHeight = screenWidth / gridCount;
 
                   final double topBottomPadding =
                       appBarItemHeight + bottomSectionHeight;
-
+                  print(
+                    'screenWidth: ${screenWidth}, itemSize: ${itemSize}, itemSpacing: ${itemSpacing}, topBottomPadding: ${topBottomPadding}, gridCount: ${gridCount}',
+                  );
                   return MergeSemantics(
                     child: Directionality(
                       textDirection: Directionality.of(context),
                       child: GestureDetector(
+                        // onHorizontalDragStart: (details) {
+                        //   print(
+                        //       'onHorizontalDragStart offset: ${details.globalPosition.toString()}');
+                        // },
                         onPanDown: (DragDownDetails details) {
-                          final Offset globalPosition = details.globalPosition;
-                          p.updateInitialPanPosition(
-                            globalPosition.translate(
-                              0.0,
-                              gridScrollController.offset,
-                            ),
+                          print(
+                            'onPanDown: ${details.globalPosition.toString()}',
                           );
 
-                          p.selectedPosition(
-                            Offset(
-                              (globalPosition.dx / itemSize).floor().toDouble(),
-                              ((globalPosition.dy -
-                                              topBottomPadding +
-                                              gridScrollController.offset)
-                                          .abs() ~/
-                                      itemSize)
-                                  .toDouble(),
-                            ),
-                          );
+                          p.updateInitialPanItemIndex(index);
                           p.updateInitialAssetSelectedStatus(assets[index]);
+                          print('currIndex: ${index}');
                         },
                         onPanUpdate: (DragUpdateDetails details) {
-                          final Offset diff = (details.globalPosition.translate(
-                                0.0,
-                                gridScrollController.offset,
-                              )) -
-                              p.initialPanPosition;
-                          final int diffRow = diff.dy ~/ itemSize;
-                          final int diffColumn = (diff.dx / itemSize).floor();
-                          int calculateIndex(
-                            double column,
-                            double row,
-                            bool round,
-                          ) {
-                            if (round) {
-                              return (row * gridCount + column).ceil();
+                          // print(
+                          //     'onPanUpdate: ${details.globalPosition.toString()}');
+                          int panItemIndex() {
+                            int dx = (details.globalPosition.dx ~/ itemSize);
+                            if (gridRevert) {
+                              // 逆向
+                              int dy = (screenHeight -
+                                          details.globalPosition.dy -
+                                          topBottomPadding -
+                                          gridScrollController.offset)
+                                      .abs() ~/
+                                  itemHeight;
+
+                              dx = gridCount - dx - 1;
+
+                              return dy * 4 + dx - placeholderCount;
                             } else {
-                              return (row * gridCount + column).floor();
+                              // 正向
+                              int dy = (gridScrollController.offset +
+                                          details.globalPosition.dy -
+                                          topBottomPadding)
+                                      .abs() ~/
+                                  itemHeight;
+                              return dy * gridCount + dx;
                             }
                           }
 
-                          int initialIndex = calculateIndex(
-                            p.initialSelectedPosition.dx,
-                            p.initialSelectedPosition.dy,
-                            false,
-                          );
-
-                          final Offset endPanResult = p
-                                  .initialSelectedPosition +
-                              Offset(diffColumn.toDouble(), diffRow.toDouble());
-
-                          final int endPanIndex;
-                          if (diffColumn < 0) {
-                            endPanIndex = calculateIndex(
-                              endPanResult.dx,
-                              endPanResult.dy,
-                              true,
-                            );
-                            initialIndex += 1;
-                          } else {
-                            endPanIndex = calculateIndex(
-                                  endPanResult.dx,
-                                  endPanResult.dy,
-                                  true,
-                                ) +
-                                1;
-                          }
-
-                          List<AssetEntity> filteredAssetList;
-                          if (endPanIndex < initialIndex) {
-                            filteredAssetList = assets
-                                .getRange(endPanIndex, initialIndex)
-                                .toList();
-                            filteredAssetList.reversed;
-                          } else {
-                            filteredAssetList = assets
-                                .getRange(initialIndex, endPanIndex)
-                                .toList();
-
-                            if (!p.initialAssetSelectedStatus) {
-                              p.selectedAssets
-                                  .forEach(filteredAssetList.remove);
-                              filteredAssetList = filteredAssetList
-                                  .take(p.maxAssets - p.selectedAssets.length)
-                                  .toList();
+                          int panIndex = panItemIndex();
+                          print('onPanUpdate Index: ${panIndex}');
+                          if (panIndex >= 0) {
+                            if (p.initialAssetSelectedStatus) {
+                              p.unSelectAsset(assets[p.initialPanItemIndex]);
+                              if (panIndex != p.initialPanItemIndex) {
+                                p.unSelectAsset(assets[panIndex]);
+                              }
+                            } else {
+                              p.selectAsset(assets[p.initialPanItemIndex]);
+                              if (panIndex != p.initialPanItemIndex) {
+                                p.selectAsset(assets[panIndex]);
+                              }
                             }
                           }
-
-                          p.updateSelectedAsset(filteredAssetList);
                         },
-                        onPanEnd: (_) => p.resetPanStatus.call(),
+                        onPanEnd: (_) {
+                          print('onPanUpdate: ' + index.toString());
+                          p.resetPanStatus.call();
+                        },
                         child: assetGridItemBuilder(
                           context,
                           index,
