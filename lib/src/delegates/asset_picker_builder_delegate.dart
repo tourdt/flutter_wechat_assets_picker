@@ -1133,6 +1133,7 @@ class DefaultAssetPickerBuilderDelegate
                   print(
                     'screenWidth: ${screenWidth}, itemSize: ${itemSize}, itemSpacing: ${itemSpacing}, topBottomPadding: ${topBottomPadding}, gridCount: ${gridCount}',
                   );
+
                   return MergeSemantics(
                     child: Directionality(
                       textDirection: Directionality.of(context),
