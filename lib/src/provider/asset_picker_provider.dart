@@ -273,6 +273,7 @@ abstract class AssetPickerProvider<Asset, Path> extends ChangeNotifier {
     initialPanPosition = Offset.zero;
     initialSelectedPosition = Offset.zero;
     initialAssetSelectedStatus = false;
+    initialPanItemIndex = -1;
   }
 }
 

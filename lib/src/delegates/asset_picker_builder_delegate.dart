@@ -1160,7 +1160,7 @@ class DefaultAssetPickerBuilderDelegate
                               // 逆向
                               int dy = (screenHeight -
                                           details.globalPosition.dy -
-                                          topBottomPadding -
+                                          bottomSectionHeight -
                                           gridScrollController.offset)
                                       .abs() ~/
                                   itemHeight;
@@ -1170,18 +1170,18 @@ class DefaultAssetPickerBuilderDelegate
                               return dy * 4 + dx - placeholderCount;
                             } else {
                               // 正向
-                              int dy = (gridScrollController.offset +
+                              final int dy = (gridScrollController.offset +
                                           details.globalPosition.dy -
-                                          topBottomPadding)
+                                          topPadding)
                                       .abs() ~/
                                   itemHeight;
                               return dy * gridCount + dx;
                             }
                           }
 
-                          int panIndex = panItemIndex();
+                          final int panIndex = panItemIndex();
                           print('onPanUpdate Index: ${panIndex}');
-                          if (panIndex >= 0) {
+                          if (panIndex >= 0 && p.initialPanItemIndex >= 0) {
                             if (p.initialAssetSelectedStatus) {
                               p.unSelectAsset(assets[p.initialPanItemIndex]);
                               if (panIndex != p.initialPanItemIndex) {
