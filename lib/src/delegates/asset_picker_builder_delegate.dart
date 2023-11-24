@@ -1152,15 +1152,15 @@ class DefaultAssetPickerBuilderDelegate
                           print('currIndex: ${index}');
                         },
                         onPanUpdate: (DragUpdateDetails details) {
-                          // print(
-                          //     'onPanUpdate: ${details.globalPosition.toString()}');
+                          print(
+                              'onPanUpdate: ${details.globalPosition.toString()}');
                           int panItemIndex() {
                             int dx = (details.globalPosition.dx ~/ itemSize);
                             if (gridRevert) {
                               // 逆向
                               int dy = (screenHeight -
                                           details.globalPosition.dy -
-                                          bottomSectionHeight -
+                                          topBottomPadding -
                                           gridScrollController.offset)
                                       .abs() ~/
                                   itemHeight;
@@ -1172,7 +1172,7 @@ class DefaultAssetPickerBuilderDelegate
                               // 正向
                               final int dy = (gridScrollController.offset +
                                           details.globalPosition.dy -
-                                          topPadding)
+                                          topBottomPadding)
                                       .abs() ~/
                                   itemHeight;
                               return dy * gridCount + dx;
