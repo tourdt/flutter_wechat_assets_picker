@@ -1172,11 +1172,11 @@ class DefaultAssetPickerBuilderDelegate
 
                           p.updateInitialPanItemIndex(index);
                           p.updateInitialAssetSelectedStatus(assets[index]);
-                          print('currIndex: ${index}');
+                          // print('currIndex: ${index}');
                         },
                         onPanUpdate: (DragUpdateDetails details) {
-                          print(
-                              'onPanUpdate: ${details.globalPosition.toString()}');
+                          // print(
+                          //     'onPanUpdate: ${details.globalPosition.toString()}');
                           int panItemIndex() {
                             int dx = (details.globalPosition.dx ~/ itemSize);
                             if (gridRevert) {
@@ -1203,7 +1203,7 @@ class DefaultAssetPickerBuilderDelegate
                           }
 
                           final int panIndex = panItemIndex();
-                          print('onPanUpdate Index: ${panIndex}');
+                          // print('onPanUpdate Index: ${panIndex}');
                           if (panIndex >= 0 && p.initialPanItemIndex >= 0) {
                             if (p.initialAssetSelectedStatus) {
                               p.unSelectAsset(assets[p.initialPanItemIndex]);
@@ -1219,7 +1219,7 @@ class DefaultAssetPickerBuilderDelegate
                           }
                         },
                         onPanEnd: (_) {
-                          print('onPanUpdate: ' + index.toString());
+                          // print('onPanUpdate: ' + index.toString());
                           p.resetPanStatus.call();
                         },
                         child: assetGridItemBuilder(
