@@ -522,7 +522,10 @@ class DefaultAssetPickerProvider
         (PathWrapper<AssetPathEntity> p) => p.path == path.path,
       );
       if (index != -1) {
-        _paths[index] = _paths[index].copyWith(thumbnailData: data);
+        // TODO::FIX BUG https://github.com/fluttercandies/flutter_wechat_assets_picker/issues/602
+        // _paths[index] = _paths[index].copyWith(thumbnailData: data);
+        _paths[index] =
+            _paths[index].copyWith(thumbnailData: data, assetCount: assetCount);
         notifyListeners();
       }
       return data;
