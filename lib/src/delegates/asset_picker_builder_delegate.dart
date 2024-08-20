@@ -4,7 +4,6 @@
 
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:typed_data' as typed_data;
 import 'dart:ui' as ui;
 
 import 'package:flutter/gestures.dart';
@@ -200,20 +199,24 @@ abstract class AssetPickerBuilderDelegate<Asset, Path> {
   /// 权限受限栏的高度
   double get permissionLimitedBarHeight => isPermissionLimited ? 75 : 0;
 
+  @Deprecated('Use permissionNotifier instead. This will be removed in 10.0.0')
+  ValueNotifier<PermissionState> get permission => permissionNotifier;
+
   /// Notifier for the current [PermissionState].
   /// 当前 [PermissionState] 的监听
-  late final ValueNotifier<PermissionState> permission =
-      ValueNotifier<PermissionState>(
+  late final permissionNotifier = ValueNotifier<PermissionState>(
     initialPermission,
   );
-  late final ValueNotifier<bool> permissionOverlayDisplay = ValueNotifier<bool>(
-    limitedPermissionOverlayPredicate?.call(permission.value) ??
-        (permission.value == PermissionState.limited),
+
+  late final permissionOverlayDisplay = ValueNotifier<bool>(
+    limitedPermissionOverlayPredicate?.call(permissionNotifier.value) ??
+        (permissionNotifier.value == PermissionState.limited),
   );
 
   /// Whether the permission is limited currently.
   /// 当前的权限是否为受限
-  bool get isPermissionLimited => permission.value == PermissionState.limited;
+  bool get isPermissionLimited =>
+      permissionNotifier.value == PermissionState.limited;
 
   bool effectiveShouldRevertGrid(BuildContext context) =>
       shouldRevertGrid ?? isAppleOS(context);
@@ -235,7 +238,7 @@ abstract class AssetPickerBuilderDelegate<Asset, Path> {
     Singleton.scrollPosition = null;
     gridScrollController.dispose();
     isSwitchingPath.dispose();
-    permission.dispose();
+    permissionNotifier.dispose();
     permissionOverlayDisplay.dispose();
   }
 
@@ -660,7 +663,7 @@ abstract class AssetPickerBuilderDelegate<Asset, Path> {
     );
 
     return ValueListenableBuilder2<PermissionState, bool>(
-      firstNotifier: permission,
+      firstNotifier: permissionNotifier,
       secondNotifier: permissionOverlayDisplay,
       builder: (_, PermissionState ps, bool isDisplay, __) {
         if (ps.isAuth || !isDisplay) {
@@ -850,11 +853,12 @@ class DefaultAssetPickerBuilderDelegate
 
   @override
   Future<void> onAssetsChanged(MethodCall call, StateSetter setState) async {
+    final permission = permissionNotifier.value;
+
     bool predicate() {
-      final p = permission.value;
       final path = provider.currentPath?.path;
       if (assetsChangeRefreshPredicate != null) {
-        return assetsChangeRefreshPredicate!(p, call, path);
+        return assetsChangeRefreshPredicate!(permission, call, path);
       }
       return path?.isAll == true;
     }
@@ -863,17 +867,22 @@ class DefaultAssetPickerBuilderDelegate
       return;
     }
 
-    assetsChangeCallback?.call(
-      permission.value,
-      call,
-      provider.currentPath?.path,
-    );
+    assetsChangeCallback?.call(permission, call, provider.currentPath?.path);
 
     final createIds = <String>[];
     final updateIds = <String>[];
     final deleteIds = <String>[];
+    int newCount = 0;
+    int oldCount = 0;
+
     // Typically for iOS.
     if (call.arguments case final Map arguments) {
+      if (arguments['newCount'] case final int count) {
+        newCount = count;
+      }
+      if (arguments['oldCount'] case final int count) {
+        oldCount = count;
+      }
       for (final e in (arguments['create'] as List?) ?? []) {
         if (e['id'] case final String id) {
           createIds.add(id);
@@ -889,7 +898,12 @@ class DefaultAssetPickerBuilderDelegate
           deleteIds.add(id);
         }
       }
-      if (createIds.isEmpty && updateIds.isEmpty && deleteIds.isEmpty) {
+      if (createIds.isEmpty &&
+          updateIds.isEmpty &&
+          deleteIds.isEmpty &&
+          // Updates with limited permission on iOS does not provide any IDs.
+          // Counting on length changes is not reliable.
+          (newCount == oldCount && permission != PermissionState.limited)) {
         return;
       }
     }
@@ -943,6 +957,7 @@ class DefaultAssetPickerBuilderDelegate
           ..totalAssetsCount = assetCount
           ..getThumbnailFromPath(newPathWrapper);
       }
+      isSwitchingPath.value = false;
     }).then(lock.complete).catchError(lock.completeError).whenComplete(() {
       onAssetsChangedLock = null;
     });
@@ -967,7 +982,9 @@ class DefaultAssetPickerBuilderDelegate
       return;
     }
     final revert = effectiveShouldRevertGrid(context);
-    List<AssetEntity> current;
+    // ignore: no_leading_underscores_for_local_identifiers
+    final int _debugFlow; // Only for debug process.
+    final List<AssetEntity> current;
     final List<AssetEntity>? selected;
     final int effectiveIndex;
     if (isWeChatMoment) {
@@ -975,32 +992,49 @@ class DefaultAssetPickerBuilderDelegate
         current = <AssetEntity>[currentAsset];
         selected = null;
         effectiveIndex = 0;
+        _debugFlow = 10;
       } else {
+        final List<AssetEntity> list;
         if (index == null) {
-          current = p.selectedAssets;
-          current = current.reversed.toList(growable: false);
+          list = p.selectedAssets.reversed.toList(growable: false);
         } else {
-          current = p.currentAssets;
+          list = p.currentAssets;
         }
-        current = current
-            .where((AssetEntity e) => e.type == AssetType.image)
-            .toList();
+        current = list.where((e) => e.type == AssetType.image).toList();
         selected = p.selectedAssets;
         final i = current.indexOf(currentAsset);
         effectiveIndex = revert ? current.length - i - 1 : i;
+        _debugFlow = switch ((index == null, revert)) {
+          (true, true) => 21,
+          (true, false) => 20,
+          (false, true) => 31,
+          (false, false) => 30,
+        };
       }
     } else {
       selected = p.selectedAssets;
+      final List<AssetEntity> list;
       if (index == null) {
-        current = p.selectedAssets;
         if (revert) {
-          current = current.reversed.toList(growable: false);
+          list = p.selectedAssets.reversed.toList(growable: false);
+        } else {
+          list = p.selectedAssets;
         }
         effectiveIndex = selected.indexOf(currentAsset);
+        current = list;
       } else {
         current = p.currentAssets;
         effectiveIndex = revert ? current.length - index - 1 : index;
       }
+      _debugFlow = switch ((index == null, revert)) {
+        (true, true) => 41,
+        (true, false) => 40,
+        (false, true) => 51,
+        (false, false) => 50,
+      };
+    }
+    if (current.isEmpty) {
+      throw StateError('Previewing empty assets is not allowed. $_debugFlow');
     }
     final List<AssetEntity>? result = await AssetPickerViewer.pushToViewer(
       context,
@@ -1720,32 +1754,57 @@ class DefaultAssetPickerBuilderDelegate
     int index,
     AssetEntity asset,
   ) {
-    final AssetEntityImageProvider imageProvider = AssetEntityImageProvider(
-      asset,
-      isOriginal: false,
-      thumbnailSize: gridThumbnailSize,
-    );
-    SpecialImageType? type;
-    if (imageProvider.imageFileType == ImageFileType.gif) {
-      type = SpecialImageType.gif;
-    } else if (imageProvider.imageFileType == ImageFileType.heic) {
-      type = SpecialImageType.heic;
-    }
-    return Stack(
-      children: <Widget>[
-        Positioned.fill(
-          child: RepaintBoundary(
-            child: AssetEntityGridItemBuilder(
-              image: imageProvider,
-              failedItemBuilder: failedItemBuilder,
+    return LocallyAvailableBuilder(
+      asset: asset,
+      builder: (context, asset) {
+        final imageProvider = AssetEntityImageProvider(
+          asset,
+          isOriginal: false,
+          thumbnailSize: gridThumbnailSize,
+        );
+        SpecialImageType? type;
+        if (imageProvider.imageFileType == ImageFileType.gif) {
+          type = SpecialImageType.gif;
+        } else if (imageProvider.imageFileType == ImageFileType.heic) {
+          type = SpecialImageType.heic;
+        }
+        return Stack(
+          children: <Widget>[
+            Positioned.fill(
+              child: RepaintBoundary(
+                child: AssetEntityGridItemBuilder(
+                  image: imageProvider,
+                  failedItemBuilder: failedItemBuilder,
+                ),
+              ),
             ),
+            if (type == SpecialImageType.gif) // 如果为GIF则显示标识
+              gifIndicator(context, asset),
+            if (asset.type == AssetType.video) // 如果为视频则显示标识
+              videoIndicator(context, asset),
+          ],
+        );
+      },
+      progressBuilder: (context, state, progress) => Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            state == PMRequestState.failed
+                ? Icons.cloud_off
+                : Icons.cloud_download_outlined,
+            color: context.iconTheme.color?.withOpacity(.4),
+            size: 24.0,
           ),
-        ),
-        if (type == SpecialImageType.gif) // 如果为GIF则显示标识
-          gifIndicator(context, asset),
-        if (asset.type == AssetType.video) // 如果为视频则显示标识
-          videoIndicator(context, asset),
-      ],
+          if (state != PMRequestState.success && state != PMRequestState.failed)
+            ScaleText(
+              ' ${((progress ?? 0) * 100).toInt()}%',
+              style: TextStyle(
+                color: context.textTheme.bodyMedium?.color?.withOpacity(.4),
+                fontSize: 12.0,
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -1818,7 +1877,7 @@ class DefaultAssetPickerBuilderDelegate
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             ValueListenableBuilder<PermissionState>(
-              valueListenable: permission,
+              valueListenable: permissionNotifier,
               builder: (_, PermissionState ps, Widget? child) => Semantics(
                 label: '${semanticsTextDelegate.viewingLimitedAssetsTip}, '
                     '${semanticsTextDelegate.changeAccessibleLimitedAssets}',
@@ -1996,7 +2055,7 @@ class DefaultAssetPickerBuilderDelegate
   }) {
     final PathWrapper<AssetPathEntity> wrapper = list[index];
     final AssetPathEntity pathEntity = wrapper.path;
-    final typed_data.Uint8List? data = wrapper.thumbnailData;
+    final Uint8List? data = wrapper.thumbnailData;
 
     Widget builder() {
       if (data != null) {

@@ -9,10 +9,20 @@ that can be found in the LICENSE file. -->
 
 ## Unreleased
 
+*None.*
+
+## 9.2.1
+
+- Improve changes when limited on iOS.
+- Use `LocallyAvailableBuilder` in the grid to provide better user awareness.
+
+## 9.2.0
+
 ### New features
 
 - Introduce `AssetsChangeCallback` and `AssetsChangeRefreshPredicate`
   to help users act according to assets changes.
+- Add `shouldAutoplayPreview` in the config.
 
 ### Fixes
 
