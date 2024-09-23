@@ -263,7 +263,11 @@ abstract class AssetPickerProvider<Asset, Path> extends ChangeNotifier {
 
   /// 用户手势滑动初始Item Index
   int initialPanItemIndex = -1;
+
+  /// 用户手势滑动当前的Item Index
+  int latestPanItemIndex = -1;
   void updateInitialPanItemIndex(int index) => initialPanItemIndex = index;
+  void updateLatestPanItemIndex(int index) => latestPanItemIndex = index;
 
   /// Position of the first asset tapped
   /// 第一个点击的asset坐标

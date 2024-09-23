@@ -1274,6 +1274,7 @@ class DefaultAssetPickerBuilderDelegate
                           );
 
                           p.updateInitialPanItemIndex(index);
+                          p.updateLatestPanItemIndex(index);
                           p.updateInitialAssetSelectedStatus(assets[index]);
                           // print('currIndex: ${index}');
                         },
@@ -1308,17 +1309,57 @@ class DefaultAssetPickerBuilderDelegate
                           final int panIndex = panItemIndex();
                           // print('onPanUpdate Index: ${panIndex}');
                           if (panIndex >= 0 && p.initialPanItemIndex >= 0) {
+                            //  3 => 6 => 9
+
                             if (p.initialAssetSelectedStatus) {
                               p.unSelectAsset(assets[p.initialPanItemIndex]);
-                              if (panIndex != p.initialPanItemIndex) {
-                                p.unSelectAsset(assets[panIndex]);
+                              if (panIndex != p.latestPanItemIndex) {
+                                if (p.latestPanItemIndex > panIndex) {
+                                  for (int i = panIndex;
+                                      i <= p.latestPanItemIndex;
+                                      i++) {
+                                    p.unSelectAsset(assets[i]);
+                                  }
+                                } else {
+                                  for (int i = p.latestPanItemIndex;
+                                      i <= panIndex;
+                                      i++) {
+                                    p.selectAsset(assets[i]);
+                                  }
+                                }
+                                // p.unSelectAsset(assets[panIndex]);
                               }
                             } else {
                               p.selectAsset(assets[p.initialPanItemIndex]);
-                              if (panIndex != p.initialPanItemIndex) {
-                                p.selectAsset(assets[panIndex]);
+                              if (panIndex != p.latestPanItemIndex) {
+                                if (p.latestPanItemIndex > panIndex) {
+                                  for (int i = panIndex;
+                                      i <= p.latestPanItemIndex;
+                                      i++) {
+                                    p.selectAsset(assets[i]);
+                                  }
+                                } else {
+                                  for (int i = p.latestPanItemIndex;
+                                      i <= panIndex;
+                                      i++) {
+                                    p.unSelectAsset(assets[i]);
+                                  }
+                                }
+                                // p.selectAsset(assets[panIndex]);
                               }
                             }
+                            p.updateLatestPanItemIndex(panIndex);
+                            // if (p.initialAssetSelectedStatus) {
+                            //   p.unSelectAsset(assets[p.initialPanItemIndex]);
+                            //   if (panIndex != p.initialPanItemIndex) {
+                            //     p.unSelectAsset(assets[panIndex]);
+                            //   }
+                            // } else {
+                            //   p.selectAsset(assets[p.initialPanItemIndex]);
+                            //   if (panIndex != p.initialPanItemIndex) {
+                            //     p.selectAsset(assets[panIndex]);
+                            //   }
+                            // }
                           }
                         },
                         onPanEnd: (_) {
