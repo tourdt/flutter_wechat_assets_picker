@@ -1307,60 +1307,117 @@ class DefaultAssetPickerBuilderDelegate
                           }
 
                           final int panIndex = panItemIndex();
+                          int startIndex = p.initialPanItemIndex;
+                          int endIndex = p.initialPanItemIndex;
+                          bool isSelect = false;
+                          bool sortOrderAsc = false;
                           // print('onPanUpdate Index: ${panIndex}');
-                          if (panIndex >= 0 && p.initialPanItemIndex >= 0) {
-                            //  3 => 6 => 9
-
-                            if (p.initialAssetSelectedStatus) {
-                              p.unSelectAsset(assets[p.initialPanItemIndex]);
-                              if (panIndex != p.latestPanItemIndex) {
-                                if (p.latestPanItemIndex > panIndex) {
-                                  for (int i = panIndex;
-                                      i <= p.latestPanItemIndex;
-                                      i++) {
-                                    p.unSelectAsset(assets[i]);
-                                  }
-                                } else {
-                                  for (int i = p.latestPanItemIndex;
-                                      i <= panIndex;
-                                      i++) {
-                                    p.selectAsset(assets[i]);
-                                  }
-                                }
-                                // p.unSelectAsset(assets[panIndex]);
+                          if (panIndex < 0 || p.initialPanItemIndex < 0) {
+                            return;
+                          }
+                          print(
+                              'latest index: ${p.latestPanItemIndex}, initIndex: ${p.initialPanItemIndex}, currIndex: $panIndex');
+                          //  3 => 6 => 9
+                          bool doSelect = !p.initialAssetSelectedStatus;
+                          if (panIndex != p.latestPanItemIndex) {
+                            if (panIndex < p.initialPanItemIndex) {
+                              // 往下选择(当前位置小于初始位置)
+                              if (panIndex > p.latestPanItemIndex) {
+                                // 先下选择了很多，现在应该取消选择一部分
+                                startIndex = p.latestPanItemIndex;
+                                endIndex = panIndex - 1;
+                                isSelect = !doSelect;
+                                sortOrderAsc = true;
+                              } else {
+                                startIndex = p.latestPanItemIndex;
+                                endIndex = panIndex;
+                                isSelect = doSelect;
+                                sortOrderAsc = false;
                               }
-                            } else {
-                              p.selectAsset(assets[p.initialPanItemIndex]);
-                              if (panIndex != p.latestPanItemIndex) {
-                                if (p.latestPanItemIndex > panIndex) {
-                                  for (int i = panIndex;
-                                      i <= p.latestPanItemIndex;
-                                      i++) {
-                                    p.selectAsset(assets[i]);
-                                  }
+                            } else if (panIndex > p.initialPanItemIndex) {
+                              // 往上选择(当前位置大于初始位置)
+                              if (panIndex < p.latestPanItemIndex) {
+                                // 先上选择了很多，现在应该取消选择一部分
+                                startIndex = p.latestPanItemIndex;
+                                endIndex = panIndex + 1;
+                                isSelect = !doSelect;
+                                sortOrderAsc = false;
+                              } else {
+                                // 当前位置等于初始位置
+                                startIndex = p.latestPanItemIndex;
+                                endIndex = panIndex;
+                                isSelect = doSelect;
+                                sortOrderAsc = true;
+                              }
+                            } else {}
+                          } else {
+                            isSelect = doSelect;
+                          }
+                          List<AssetEntity> selectList = [];
+                          List<AssetEntity> unselectList = [];
+                          if (sortOrderAsc) {
+                            if (startIndex < p.initialPanItemIndex &&
+                                endIndex > p.initialPanItemIndex) {
+                              for (int i = startIndex;
+                                  i < p.initialPanItemIndex;
+                                  i++) {
+                                print('选择Item[$i]-1: ${!isSelect}');
+                                if (isSelect) {
+                                  unselectList.add(assets[i]);
                                 } else {
-                                  for (int i = p.latestPanItemIndex;
-                                      i <= panIndex;
-                                      i++) {
-                                    p.unSelectAsset(assets[i]);
-                                  }
+                                  selectList.add(assets[i]);
                                 }
-                                // p.selectAsset(assets[panIndex]);
+                              }
+                              p.selectAssetList(selectList);
+                              p.unSelectAssetList(unselectList);
+                              startIndex = p.initialPanItemIndex;
+                            }
+                            selectList = [];
+                            unselectList = [];
+
+                            for (int i = startIndex; i <= endIndex; i++) {
+                              print('选择Item[$i]-2: $isSelect');
+                              if (isSelect) {
+                                selectList.add(assets[i]);
+                              } else {
+                                unselectList.add(assets[i]);
                               }
                             }
-                            p.updateLatestPanItemIndex(panIndex);
-                            // if (p.initialAssetSelectedStatus) {
-                            //   p.unSelectAsset(assets[p.initialPanItemIndex]);
-                            //   if (panIndex != p.initialPanItemIndex) {
-                            //     p.unSelectAsset(assets[panIndex]);
-                            //   }
-                            // } else {
-                            //   p.selectAsset(assets[p.initialPanItemIndex]);
-                            //   if (panIndex != p.initialPanItemIndex) {
-                            //     p.selectAsset(assets[panIndex]);
-                            //   }
-                            // }
+                            p.selectAssetList(selectList);
+                            p.unSelectAssetList(unselectList);
+                          } else {
+                            if (startIndex > p.initialPanItemIndex &&
+                                endIndex < p.initialPanItemIndex) {
+                              for (int i = p.initialPanItemIndex + 1;
+                                  i >= startIndex;
+                                  i--) {
+                                print('选择Item[$i]-10: ${!isSelect}');
+
+                                if (isSelect) {
+                                  unselectList.add(assets[i]);
+                                } else {
+                                  selectList.add(assets[i]);
+                                }
+                              }
+                              p.selectAssetList(selectList);
+                              p.unSelectAssetList(unselectList);
+                              startIndex = p.initialPanItemIndex;
+                            }
+
+                            selectList = [];
+                            unselectList = [];
+                            for (int i = startIndex; i >= endIndex; i--) {
+                              print('选择Item[$i]-20: $isSelect');
+                              if (isSelect) {
+                                selectList.add(assets[i]);
+                              } else {
+                                unselectList.add(assets[i]);
+                              }
+                            }
+                            p.selectAssetList(selectList);
+                            p.unSelectAssetList(unselectList);
                           }
+                          p.updateLatestPanItemIndex(panIndex);
                         },
                         onPanEnd: (_) {
                           // print('onPanUpdate: ' + index.toString());
@@ -1797,6 +1854,7 @@ class DefaultAssetPickerBuilderDelegate
   ) {
     return LocallyAvailableBuilder(
       asset: asset,
+      isOriginal: false,
       builder: (context, asset) {
         final imageProvider = AssetEntityImageProvider(
           asset,

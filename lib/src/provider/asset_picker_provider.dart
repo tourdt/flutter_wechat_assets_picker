@@ -247,11 +247,46 @@ abstract class AssetPickerProvider<Asset, Path> extends ChangeNotifier {
     selectedAssets = set;
   }
 
+  void selectAssetList(List<Asset> items) {
+    if (items.isEmpty) {
+      return;
+    }
+    if (selectedAssets.length == maxAssets) {
+      return;
+    }
+    final List<Asset> set = selectedAssets.toList();
+    for (int i = 0; i < items.length; i++) {
+      // if (selectedAssets.contains(items[i])) {
+      //   continue;
+      // }
+      if (set.contains(items[i])) {
+        continue;
+      }
+      if (set.length == maxAssets) {
+        continue;
+      }
+      set.add(items[i]);
+    }
+
+    selectedAssets = set;
+  }
+
   /// Un-select asset.
   /// 取消选中资源
   void unSelectAsset(Asset item) {
     final List<Asset> set = selectedAssets.toList();
     set.remove(item);
+    selectedAssets = set;
+  }
+
+  void unSelectAssetList(List<Asset> items) {
+    if (items.isEmpty) {
+      return;
+    }
+    final List<Asset> set = selectedAssets.toList();
+    for (int i = 0; i < items.length; i++) {
+      set.remove(items[i]);
+    }
     selectedAssets = set;
   }
 
@@ -300,6 +335,7 @@ abstract class AssetPickerProvider<Asset, Path> extends ChangeNotifier {
     initialSelectedPosition = Offset.zero;
     initialAssetSelectedStatus = false;
     initialPanItemIndex = -1;
+    latestPanItemIndex = -1;
   }
 }
 
