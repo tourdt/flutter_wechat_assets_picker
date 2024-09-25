@@ -11,6 +11,22 @@ that can be found in the LICENSE file. -->
 
 *None.*
 
+## 9.3.0
+
+### New features
+
+- Add explicit Live Photos indicator for assets.
+
+### Improvements
+
+- Make Live Photos gesture consistent when scaling and panning.
+- Integrate `LocallyAvailableBuilder` with thumbnail options to improve the thumbnail loading speed.
+- Use `visibility_detector` and scroll observer to improve media playing experiences.
+
+### Fixes
+
+- Fix the bottom actions bar display conditions.
+
 ## 9.2.2
 
 - Uses correct `isOriginal` for the `LocallyAvailableBuilder`.
@@ -25,8 +41,8 @@ that can be found in the LICENSE file. -->
 ### New features
 
 - Introduce `AssetsChangeCallback` and `AssetsChangeRefreshPredicate`
-  to help users act according to assets changes.
-- Add `shouldAutoplayPreview` in the config.
+  to help users act according to asset changes.
+- Add `shouldAutoplayPreview` to the picker config.
 
 ### Fixes
 

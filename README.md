@@ -21,7 +21,7 @@ Language: English | [中文](README-ZH.md)
 An **image picker (also with videos and audios)**
 for Flutter projects based on the WeChat's UI.
 
-Current WeChat version that UI based on: **8.3.x**
+Current WeChat version that UI based on: **8.0.51**
 UI designs will be updated following the WeChat update in anytime.
 
 To take a photo or a video for assets,
@@ -584,6 +584,7 @@ Many thanks to these wonderful people ([emoji key](https://allcontributors.org/d
       <td align="center" valign="top" width="14.28%"><a href="https://sqlturk.wordpress.com/"><img src="https://avatars.githubusercontent.com/u/12383547?v=4?s=50" width="50px;" alt="Cevheri"/><br /><sub><b>Cevheri</b></sub></a><br /><a href="#translation-cevheri" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://velog.io/@hee_mm_"><img src="https://avatars.githubusercontent.com/u/48482259?v=4?s=50" width="50px;" alt="mirimhee"/><br /><sub><b>mirimhee</b></sub></a><br /><a href="#translation-LIMMIHEE" title="Translation">🌍</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://amoshk.top"><img src="https://avatars.githubusercontent.com/u/32262985?v=4?s=50" width="50px;" alt="Amos"/><br /><sub><b>Amos</b></sub></a><br /><a href="https://github.com/fluttercandies/flutter_wechat_assets_picker/issues?q=author%3AAmosHuKe" title="Bug reports">🐛</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/Dimilkalathiya"><img src="https://avatars.githubusercontent.com/u/102401667?v=4?s=50" width="50px;" alt="Dimil Kalathiya"/><br /><sub><b>Dimil Kalathiya</b></sub></a><br /><a href="https://github.com/fluttercandies/flutter_wechat_assets_picker/commits?author=Dimilkalathiya" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>
