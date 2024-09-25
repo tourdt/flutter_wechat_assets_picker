@@ -1271,6 +1271,8 @@ class DefaultAssetPickerBuilderDelegate
             context.topPadding + appBarPreferredSize!.height;
 
         Widget sliverGrid(BuildContext context, List<AssetEntity> assets) {
+          final DefaultAssetPickerProvider p =
+              Provider.of<DefaultAssetPickerProvider>(context);
           return SliverGrid(
             delegate: SliverChildBuilderDelegate(
               (_, int index) => Builder(
@@ -1281,9 +1283,6 @@ class DefaultAssetPickerBuilderDelegate
                     }
                     index -= placeholderCount;
                   }
-
-                  final DefaultAssetPickerProvider p =
-                      Provider.of<DefaultAssetPickerProvider>(context);
 
                   final double screenWidth = MediaQuery.of(context).size.width;
                   final double screenHeight =
