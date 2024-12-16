@@ -408,13 +408,16 @@ abstract class AssetPickerBuilderDelegate<Asset, Path> {
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
-        alignment: AlignmentDirectional.centerEnd,
+        width: double.infinity,
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: AlignmentDirectional.bottomCenter,
             end: AlignmentDirectional.topCenter,
-            colors: <Color>[theme.dividerColor, Colors.transparent],
+            colors: <Color>[
+              theme.canvasColor.withAlpha(128),
+              Colors.transparent,
+            ],
           ),
         ),
         child: Container(
@@ -428,11 +431,9 @@ abstract class AssetPickerBuilderDelegate<Asset, Path> {
           child: ScaleText(
             textDelegate.gifIndicator,
             style: TextStyle(
-              color: isAppleOS(context)
-                  ? theme.textTheme.bodyMedium?.color
-                  : theme.primaryColor,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
+              color: theme.textTheme.bodyMedium?.color,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
             ),
             semanticsLabel: semanticsTextDelegate.gifIndicator,
             strutStyle: const StrutStyle(forceStrutHeight: true, height: 1),
@@ -900,7 +901,7 @@ class DefaultAssetPickerBuilderDelegate
       if (assetsChangeRefreshPredicate != null) {
         return assetsChangeRefreshPredicate!(permission, call, path);
       }
-      return path?.isAll == true;
+      return path?.isAll ?? true;
     }
 
     if (!predicate()) {
@@ -1227,11 +1228,7 @@ class DefaultAssetPickerBuilderDelegate
     final bool gridRevert = effectiveShouldRevertGrid(context);
     return Selector<DefaultAssetPickerProvider, PathWrapper<AssetPathEntity>?>(
       selector: (_, DefaultAssetPickerProvider p) => p.currentPath,
-      builder: (
-        BuildContext context,
-        PathWrapper<AssetPathEntity>? wrapper,
-        _,
-      ) {
+      builder: (context, wrapper, _) {
         // First, we need the count of the assets.
         int totalCount = wrapper?.assetCount ?? 0;
         final Widget? specialItem;
@@ -1270,207 +1267,204 @@ class DefaultAssetPickerBuilderDelegate
         final double topPadding =
             context.topPadding + appBarPreferredSize!.height;
 
+        final textDirection = Directionality.of(context);
         Widget sliverGrid(BuildContext context, List<AssetEntity> assets) {
           final DefaultAssetPickerProvider p =
               Provider.of<DefaultAssetPickerProvider>(context);
           return SliverGrid(
             delegate: SliverChildBuilderDelegate(
-              (_, int index) => Builder(
-                builder: (BuildContext context) {
-                  if (gridRevert) {
-                    if (index < placeholderCount) {
-                      return const SizedBox.shrink();
-                    }
-                    index -= placeholderCount;
+              (context, int index) {
+                if (gridRevert) {
+                  if (index < placeholderCount) {
+                    return const SizedBox.shrink();
                   }
+                  index -= placeholderCount;
+                }
 
-                  final double screenWidth = MediaQuery.of(context).size.width;
-                  final double screenHeight =
-                      MediaQuery.of(context).size.height;
+                final double screenWidth = MediaQuery.of(context).size.width;
+                final double screenHeight = MediaQuery.of(context).size.height;
 
-                  final double itemSize = screenWidth / gridCount - itemSpacing;
-                  final double itemHeight = screenWidth / gridCount;
+                final double itemSize = screenWidth / gridCount - itemSpacing;
+                final double itemHeight = screenWidth / gridCount;
 
-                  final double topBottomPadding =
-                      appBarItemHeight + bottomSectionHeight;
-                  print(
-                    'screenWidth11: ${screenWidth}, itemSize: ${itemSize}, itemSpacing: ${itemSpacing}, topBottomPadding: ${topBottomPadding}, gridCount: ${gridCount}',
-                  );
+                final double topBottomPadding =
+                    appBarItemHeight + bottomSectionHeight;
+                print(
+                  'screenWidth11: ${screenWidth}, itemSize: ${itemSize}, itemSpacing: ${itemSpacing}, topBottomPadding: ${topBottomPadding}, gridCount: ${gridCount}',
+                );
+                return MergeSemantics(
+                  child: Directionality(
+                    textDirection: Directionality.of(context),
+                    child: GestureDetector(
+                      // onHorizontalDragStart: (details) {
+                      //   print(
+                      //       'onHorizontalDragStart offset: ${details.globalPosition.toString()}');
+                      // },
+                      onPanDown: (DragDownDetails details) {
+                        print(
+                          'onPanDown: ${details.globalPosition.toString()}',
+                        );
 
-                  return MergeSemantics(
-                    child: Directionality(
-                      textDirection: Directionality.of(context),
-                      child: GestureDetector(
-                        // onHorizontalDragStart: (details) {
-                        //   print(
-                        //       'onHorizontalDragStart offset: ${details.globalPosition.toString()}');
-                        // },
-                        onPanDown: (DragDownDetails details) {
-                          print(
-                            'onPanDown: ${details.globalPosition.toString()}',
-                          );
+                        p.updateInitialPanItemIndex(index);
+                        p.updateLatestPanItemIndex(index);
+                        p.updateInitialAssetSelectedStatus(assets[index]);
+                        // print('currIndex: ${index}');
+                      },
+                      onPanUpdate: (DragUpdateDetails details) {
+                        // print(
+                        //     'onPanUpdate: ${details.globalPosition.toString()}');
+                        int panItemIndex() {
+                          int dx = (details.globalPosition.dx ~/ itemSize);
+                          if (gridRevert) {
+                            // 逆向
+                            int dy = (screenHeight -
+                                        details.globalPosition.dy -
+                                        topBottomPadding -
+                                        gridScrollController.offset)
+                                    .abs() ~/
+                                itemHeight;
 
-                          p.updateInitialPanItemIndex(index);
-                          p.updateLatestPanItemIndex(index);
-                          p.updateInitialAssetSelectedStatus(assets[index]);
-                          // print('currIndex: ${index}');
-                        },
-                        onPanUpdate: (DragUpdateDetails details) {
-                          // print(
-                          //     'onPanUpdate: ${details.globalPosition.toString()}');
-                          int panItemIndex() {
-                            int dx = (details.globalPosition.dx ~/ itemSize);
-                            if (gridRevert) {
-                              // 逆向
-                              int dy = (screenHeight -
-                                          details.globalPosition.dy -
-                                          topBottomPadding -
-                                          gridScrollController.offset)
-                                      .abs() ~/
-                                  itemHeight;
+                            dx = gridCount - dx - 1;
 
-                              dx = gridCount - dx - 1;
+                            return dy * 4 + dx - placeholderCount;
+                          } else {
+                            // 正向
+                            final int dy = (gridScrollController.offset +
+                                        details.globalPosition.dy -
+                                        topBottomPadding)
+                                    .abs() ~/
+                                itemHeight;
+                            return dy * gridCount + dx;
+                          }
+                        }
 
-                              return dy * 4 + dx - placeholderCount;
+                        final int panIndex = panItemIndex();
+                        int startIndex = p.initialPanItemIndex;
+                        int endIndex = p.initialPanItemIndex;
+                        bool isSelect = false;
+                        bool sortOrderAsc = false;
+                        // print('onPanUpdate Index: ${panIndex}');
+                        if (panIndex < 0 || p.initialPanItemIndex < 0) {
+                          return;
+                        }
+                        print(
+                            'latest index: ${p.latestPanItemIndex}, initIndex: ${p.initialPanItemIndex}, currIndex: $panIndex');
+                        //  3 => 6 => 9
+                        bool doSelect = !p.initialAssetSelectedStatus;
+                        if (panIndex != p.latestPanItemIndex) {
+                          if (panIndex < p.initialPanItemIndex) {
+                            // 往下选择(当前位置小于初始位置)
+                            if (panIndex > p.latestPanItemIndex) {
+                              // 先下选择了很多，现在应该取消选择一部分
+                              startIndex = p.latestPanItemIndex;
+                              endIndex = panIndex - 1;
+                              isSelect = !doSelect;
+                              sortOrderAsc = true;
                             } else {
-                              // 正向
-                              final int dy = (gridScrollController.offset +
-                                          details.globalPosition.dy -
-                                          topBottomPadding)
-                                      .abs() ~/
-                                  itemHeight;
-                              return dy * gridCount + dx;
+                              startIndex = p.latestPanItemIndex;
+                              endIndex = panIndex;
+                              isSelect = doSelect;
+                              sortOrderAsc = false;
                             }
-                          }
-
-                          final int panIndex = panItemIndex();
-                          int startIndex = p.initialPanItemIndex;
-                          int endIndex = p.initialPanItemIndex;
-                          bool isSelect = false;
-                          bool sortOrderAsc = false;
-                          // print('onPanUpdate Index: ${panIndex}');
-                          if (panIndex < 0 || p.initialPanItemIndex < 0) {
-                            return;
-                          }
-                          print(
-                              'latest index: ${p.latestPanItemIndex}, initIndex: ${p.initialPanItemIndex}, currIndex: $panIndex');
-                          //  3 => 6 => 9
-                          bool doSelect = !p.initialAssetSelectedStatus;
-                          if (panIndex != p.latestPanItemIndex) {
-                            if (panIndex < p.initialPanItemIndex) {
-                              // 往下选择(当前位置小于初始位置)
-                              if (panIndex > p.latestPanItemIndex) {
-                                // 先下选择了很多，现在应该取消选择一部分
-                                startIndex = p.latestPanItemIndex;
-                                endIndex = panIndex - 1;
-                                isSelect = !doSelect;
-                                sortOrderAsc = true;
-                              } else {
-                                startIndex = p.latestPanItemIndex;
-                                endIndex = panIndex;
-                                isSelect = doSelect;
-                                sortOrderAsc = false;
-                              }
-                            } else if (panIndex > p.initialPanItemIndex) {
-                              // 往上选择(当前位置大于初始位置)
-                              if (panIndex < p.latestPanItemIndex) {
-                                // 先上选择了很多，现在应该取消选择一部分
-                                startIndex = p.latestPanItemIndex;
-                                endIndex = panIndex + 1;
-                                isSelect = !doSelect;
-                                sortOrderAsc = false;
-                              } else {
-                                // 当前位置等于初始位置
-                                startIndex = p.latestPanItemIndex;
-                                endIndex = panIndex;
-                                isSelect = doSelect;
-                                sortOrderAsc = true;
-                              }
-                            } else {}
-                          } else {
-                            isSelect = doSelect;
-                          }
-                          List<AssetEntity> selectList = [];
-                          List<AssetEntity> unselectList = [];
-                          if (sortOrderAsc) {
-                            if (startIndex < p.initialPanItemIndex &&
-                                endIndex > p.initialPanItemIndex) {
-                              for (int i = startIndex;
-                                  i < p.initialPanItemIndex;
-                                  i++) {
-                                print('选择Item[$i]-1: ${!isSelect}');
-                                if (isSelect) {
-                                  unselectList.add(assets[i]);
-                                } else {
-                                  selectList.add(assets[i]);
-                                }
-                              }
-                              p.selectAssetList(selectList);
-                              p.unSelectAssetList(unselectList);
-                              startIndex = p.initialPanItemIndex;
+                          } else if (panIndex > p.initialPanItemIndex) {
+                            // 往上选择(当前位置大于初始位置)
+                            if (panIndex < p.latestPanItemIndex) {
+                              // 先上选择了很多，现在应该取消选择一部分
+                              startIndex = p.latestPanItemIndex;
+                              endIndex = panIndex + 1;
+                              isSelect = !doSelect;
+                              sortOrderAsc = false;
+                            } else {
+                              // 当前位置等于初始位置
+                              startIndex = p.latestPanItemIndex;
+                              endIndex = panIndex;
+                              isSelect = doSelect;
+                              sortOrderAsc = true;
                             }
-                            selectList = [];
-                            unselectList = [];
-
-                            for (int i = startIndex; i <= endIndex; i++) {
-                              print('选择Item[$i]-2: $isSelect');
+                          } else {}
+                        } else {
+                          isSelect = doSelect;
+                        }
+                        List<AssetEntity> selectList = [];
+                        List<AssetEntity> unselectList = [];
+                        if (sortOrderAsc) {
+                          if (startIndex < p.initialPanItemIndex &&
+                              endIndex > p.initialPanItemIndex) {
+                            for (int i = startIndex;
+                                i < p.initialPanItemIndex;
+                                i++) {
+                              print('选择Item[$i]-1: ${!isSelect}');
                               if (isSelect) {
-                                selectList.add(assets[i]);
-                              } else {
                                 unselectList.add(assets[i]);
+                              } else {
+                                selectList.add(assets[i]);
                               }
                             }
                             p.selectAssetList(selectList);
                             p.unSelectAssetList(unselectList);
-                          } else {
-                            if (startIndex > p.initialPanItemIndex &&
-                                endIndex < p.initialPanItemIndex) {
-                              for (int i = p.initialPanItemIndex + 1;
-                                  i >= startIndex;
-                                  i--) {
-                                print('选择Item[$i]-10: ${!isSelect}');
+                            startIndex = p.initialPanItemIndex;
+                          }
+                          selectList = [];
+                          unselectList = [];
 
-                                if (isSelect) {
-                                  unselectList.add(assets[i]);
-                                } else {
-                                  selectList.add(assets[i]);
-                                }
-                              }
-                              p.selectAssetList(selectList);
-                              p.unSelectAssetList(unselectList);
-                              startIndex = p.initialPanItemIndex;
+                          for (int i = startIndex; i <= endIndex; i++) {
+                            print('选择Item[$i]-2: $isSelect');
+                            if (isSelect) {
+                              selectList.add(assets[i]);
+                            } else {
+                              unselectList.add(assets[i]);
                             }
+                          }
+                          p.selectAssetList(selectList);
+                          p.unSelectAssetList(unselectList);
+                        } else {
+                          if (startIndex > p.initialPanItemIndex &&
+                              endIndex < p.initialPanItemIndex) {
+                            for (int i = p.initialPanItemIndex + 1;
+                                i >= startIndex;
+                                i--) {
+                              print('选择Item[$i]-10: ${!isSelect}');
 
-                            selectList = [];
-                            unselectList = [];
-                            for (int i = startIndex; i >= endIndex; i--) {
-                              print('选择Item[$i]-20: $isSelect');
                               if (isSelect) {
-                                selectList.add(assets[i]);
-                              } else {
                                 unselectList.add(assets[i]);
+                              } else {
+                                selectList.add(assets[i]);
                               }
                             }
                             p.selectAssetList(selectList);
                             p.unSelectAssetList(unselectList);
+                            startIndex = p.initialPanItemIndex;
                           }
-                          p.updateLatestPanItemIndex(panIndex);
-                        },
-                        onPanEnd: (_) {
-                          // print('onPanUpdate: ' + index.toString());
-                          p.resetPanStatus.call();
-                        },
-                        child: assetGridItemBuilder(
-                          context,
-                          index,
-                          assets,
-                          specialItem: specialItem,
-                        ),
+
+                          selectList = [];
+                          unselectList = [];
+                          for (int i = startIndex; i >= endIndex; i--) {
+                            print('选择Item[$i]-20: $isSelect');
+                            if (isSelect) {
+                              selectList.add(assets[i]);
+                            } else {
+                              unselectList.add(assets[i]);
+                            }
+                          }
+                          p.selectAssetList(selectList);
+                          p.unSelectAssetList(unselectList);
+                        }
+                        p.updateLatestPanItemIndex(panIndex);
+                      },
+                      onPanEnd: (_) {
+                        // print('onPanUpdate: ' + index.toString());
+                        p.resetPanStatus.call();
+                      },
+                      child: assetGridItemBuilder(
+                        context,
+                        index,
+                        assets,
+                        specialItem: specialItem,
                       ),
                     ),
-                  );
-                },
-              ),
+                  ),
+                );
+              },
               childCount: assetsGridItemCount(
                 context: context,
                 assets: assets,
@@ -1681,6 +1675,7 @@ class DefaultAssetPickerBuilderDelegate
               hint += ', ${asset.title}';
             }
             return Semantics(
+              key: ValueKey('${asset.id}-semantics'),
               button: false,
               enabled: !isBanned,
               excludeSemantics: true,
@@ -1900,12 +1895,6 @@ class DefaultAssetPickerBuilderDelegate
           isOriginal: false,
           thumbnailSize: gridThumbnailSize,
         );
-        SpecialImageType? type;
-        if (imageProvider.imageFileType == ImageFileType.gif) {
-          type = SpecialImageType.gif;
-        } else if (imageProvider.imageFileType == ImageFileType.heic) {
-          type = SpecialImageType.heic;
-        }
         return Stack(
           fit: StackFit.expand,
           children: <Widget>[
@@ -1915,8 +1904,16 @@ class DefaultAssetPickerBuilderDelegate
                 failedItemBuilder: failedItemBuilder,
               ),
             ),
-            if (type == SpecialImageType.gif) // 如果为GIF则显示标识
-              gifIndicator(context, asset),
+            FutureBuilder(
+              future: imageProvider.imageFileType,
+              builder: (context, snapshot) {
+                if (snapshot.data case final type?
+                    when type == ImageFileType.gif) {
+                  return gifIndicator(context, asset);
+                }
+                return const SizedBox.shrink();
+              },
+            ),
             if (asset.type == AssetType.video) // 如果为视频则显示标识
               videoIndicator(context, asset),
             if (asset.isLivePhoto) buildLivePhotoIndicator(context, asset),
