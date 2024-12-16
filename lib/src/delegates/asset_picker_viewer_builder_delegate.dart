@@ -272,7 +272,7 @@ abstract class AssetPickerViewerBuilderDelegate<Asset, Path> {
   }
 
   void selectAsset(Asset entity) {
-    if (maxAssets != null && selectedCount >= maxAssets!) {
+    if (maxAssets != null && selectedCount > maxAssets!) {
       return;
     }
     provider?.selectAsset(entity);
@@ -734,10 +734,10 @@ class DefaultAssetPickerViewerBuilderDelegate
           onPressed: () {
             Navigator.maybeOf(context)?.maybePop();
           },
-          tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
           icon: Icon(
-            Icons.close,
-            semanticLabel: MaterialLocalizations.of(context).closeButtonTooltip,
+            Icons.arrow_back_ios_new,
+            semanticLabel: MaterialLocalizations.of(context).backButtonTooltip,
           ),
         ),
       ),

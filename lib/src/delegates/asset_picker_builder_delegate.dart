@@ -408,13 +408,16 @@ abstract class AssetPickerBuilderDelegate<Asset, Path> {
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
-        alignment: AlignmentDirectional.centerEnd,
+        width: double.infinity,
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: AlignmentDirectional.bottomCenter,
             end: AlignmentDirectional.topCenter,
-            colors: <Color>[theme.dividerColor, Colors.transparent],
+            colors: <Color>[
+              theme.canvasColor.withAlpha(128),
+              Colors.transparent,
+            ],
           ),
         ),
         child: Container(
@@ -428,11 +431,9 @@ abstract class AssetPickerBuilderDelegate<Asset, Path> {
           child: ScaleText(
             textDelegate.gifIndicator,
             style: TextStyle(
-              color: isAppleOS(context)
-                  ? theme.textTheme.bodyMedium?.color
-                  : theme.primaryColor,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
+              color: theme.textTheme.bodyMedium?.color,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
             ),
             semanticsLabel: semanticsTextDelegate.gifIndicator,
             strutStyle: const StrutStyle(forceStrutHeight: true, height: 1),
@@ -900,7 +901,7 @@ class DefaultAssetPickerBuilderDelegate
       if (assetsChangeRefreshPredicate != null) {
         return assetsChangeRefreshPredicate!(permission, call, path);
       }
-      return path?.isAll == true;
+      return path?.isAll ?? true;
     }
 
     if (!predicate()) {
@@ -1227,11 +1228,7 @@ class DefaultAssetPickerBuilderDelegate
     final bool gridRevert = effectiveShouldRevertGrid(context);
     return Selector<DefaultAssetPickerProvider, PathWrapper<AssetPathEntity>?>(
       selector: (_, DefaultAssetPickerProvider p) => p.currentPath,
-      builder: (
-        BuildContext context,
-        PathWrapper<AssetPathEntity>? wrapper,
-        _,
-      ) {
+      builder: (context, wrapper, _) {
         // First, we need the count of the assets.
         int totalCount = wrapper?.assetCount ?? 0;
         final Widget? specialItem;
@@ -1270,30 +1267,29 @@ class DefaultAssetPickerBuilderDelegate
         final double topPadding =
             context.topPadding + appBarPreferredSize!.height;
 
+        final textDirection = Directionality.of(context);
         Widget sliverGrid(BuildContext context, List<AssetEntity> assets) {
           return SliverGrid(
             delegate: SliverChildBuilderDelegate(
-              (_, int index) => Builder(
-                builder: (BuildContext context) {
-                  if (gridRevert) {
-                    if (index < placeholderCount) {
-                      return const SizedBox.shrink();
-                    }
-                    index -= placeholderCount;
+              (context, int index) {
+                if (gridRevert) {
+                  if (index < placeholderCount) {
+                    return const SizedBox.shrink();
                   }
-                  return MergeSemantics(
-                    child: Directionality(
-                      textDirection: Directionality.of(context),
-                      child: assetGridItemBuilder(
-                        context,
-                        index,
-                        assets,
-                        specialItem: specialItem,
-                      ),
+                  index -= placeholderCount;
+                }
+                return MergeSemantics(
+                  child: Directionality(
+                    textDirection: textDirection,
+                    child: assetGridItemBuilder(
+                      context,
+                      index,
+                      assets,
+                      specialItem: specialItem,
                     ),
-                  );
-                },
-              ),
+                  ),
+                );
+              },
               childCount: assetsGridItemCount(
                 context: context,
                 assets: assets,
@@ -1504,6 +1500,7 @@ class DefaultAssetPickerBuilderDelegate
               hint += ', ${asset.title}';
             }
             return Semantics(
+              key: ValueKey('${asset.id}-semantics'),
               button: false,
               enabled: !isBanned,
               excludeSemantics: true,
@@ -1723,12 +1720,6 @@ class DefaultAssetPickerBuilderDelegate
           isOriginal: false,
           thumbnailSize: gridThumbnailSize,
         );
-        SpecialImageType? type;
-        if (imageProvider.imageFileType == ImageFileType.gif) {
-          type = SpecialImageType.gif;
-        } else if (imageProvider.imageFileType == ImageFileType.heic) {
-          type = SpecialImageType.heic;
-        }
         return Stack(
           fit: StackFit.expand,
           children: <Widget>[
@@ -1738,8 +1729,16 @@ class DefaultAssetPickerBuilderDelegate
                 failedItemBuilder: failedItemBuilder,
               ),
             ),
-            if (type == SpecialImageType.gif) // 如果为GIF则显示标识
-              gifIndicator(context, asset),
+            FutureBuilder(
+              future: imageProvider.imageFileType,
+              builder: (context, snapshot) {
+                if (snapshot.data case final type?
+                    when type == ImageFileType.gif) {
+                  return gifIndicator(context, asset);
+                }
+                return const SizedBox.shrink();
+              },
+            ),
             if (asset.type == AssetType.video) // 如果为视频则显示标识
               videoIndicator(context, asset),
             if (asset.isLivePhoto) buildLivePhotoIndicator(context, asset),
